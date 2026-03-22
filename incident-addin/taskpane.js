@@ -53,18 +53,16 @@ function showLoader(show) {
 // 📅 FORMAT DATE
 function formatDate(date) {
   try {
-    return new Date(date).toLocaleString();
+    return new Date(date).toISOString(); // ✅ SQL-friendly format
   } catch {
-    return date;
+    return new Date().toISOString();
   }
 }
 
 // 📩 GET EMAIL DETAILS (SAFE)
 async function getEmailDetails() {
   try {
-    // Browser mode fallback
     if (typeof Office === "undefined") {
-      console.warn("⚠️ No Office context");
       return {
         subject: "Test Subject (Browser Mode)",
         from: "test@example.com",
@@ -159,7 +157,7 @@ async function createIncidentPreview() {
   }
 }
 
-// 🚀 FINAL CREATE (n8n API)
+// 🚀 FINAL CREATE (Logic App)
 async function finalCreateIncident() {
   try {
     if (!currentIncident) {
@@ -173,7 +171,7 @@ async function finalCreateIncident() {
       document.getElementById("incDescription").value;
 
     const response = await fetch(
-      "https://datahubin.app.n8n.cloud/webhook/create-incident",
+      "https://prod-12.eastasia.logic.azure.com:443/workflows/03e1e813fba5481a945dd1ec560aa754/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=hQl8F9EEKZEuLDNJJyxAsUIf5UbGu1AKOKNKVK3aANU",
       {
         method: "POST",
         headers: {
@@ -183,9 +181,11 @@ async function finalCreateIncident() {
       }
     );
 
-    const data = await response.json();
-
-    showToast("Incident " + data.incidentNumber + " created 🎉");
+    if (response.ok) {
+      showToast("Incident created successfully 🎉");
+    } else {
+      showToast("Failed to create incident ❌");
+    }
 
     // Reset UI
     currentIncident = null;
