@@ -13,15 +13,14 @@ function initApp() {
     document.body.classList.toggle("dark");
   });
 
-  bind("btnCreate", showCreateView);
-  bind("btnFollowUp", showFollowUpView);
+  // ✅ FIXED: Only ONE binding per button
+  bind("btnCreate", handleCreateClick);
+  bind("btnFollowUp", showLogDetailsView);
   bind("btnClose", showCloseView);
 
   bind("btnFinalCreate", finalCreateIncident);
   bind("btnCloseFinal", closeIncidentFinal);
   bind("btnFetchIncident", fetchIncidentForClose);
-
-  bind("btnCreate", createIncidentPreview); // keep functionality
 }
 
 // 👉 Office init
@@ -39,20 +38,24 @@ function hideAllSections() {
   document.getElementById("closeSection").classList.add("hidden");
 }
 
-// ✅ CREATE VIEW
-function showCreateView() {
+// ✅ CREATE VIEW + PREVIEW
+async function handleCreateClick() {
   hideAllSections();
+
   document.getElementById("aiSection").classList.remove("hidden");
   document.getElementById("previewSection").classList.remove("hidden");
+
+  await createIncidentPreview(); // 🔥 important
 }
 
-// ✅ FOLLOW-UP VIEW
-function showFollowUpView() {
+// ✅ LOG DETAILS (renamed from follow-up)
+function showLogDetailsView() {
   hideAllSections();
+
   document.getElementById("aiSection").classList.remove("hidden");
 
   document.getElementById("summaryBox").value =
-    "AI follow-up summary...";
+    "📝 Log details / notes can be captured here...";
 }
 
 // ✅ CLOSE VIEW
