@@ -175,10 +175,12 @@ function followUp() {
 }
 
 // 👁️ SHOW CLOSE UI
-function showCloseSection() {
-  document.getElementById("closeSection").scrollIntoView();
-}
 
+function showCloseSection() {
+  document.getElementById("aiSection").classList.add("hidden");
+  document.getElementById("previewSection").classList.add("hidden");
+  document.getElementById("closeSection").classList.remove("hidden");
+}
 // 🔍 FETCH INCIDENT BEFORE CLOSE
 async function fetchIncidentForClose() {
   const incId = document.getElementById("closeIncidentId").value;
