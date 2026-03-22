@@ -9,7 +9,7 @@
   <!-- Office.js (REQUIRED) -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 
-  <!-- Your CSS (if you have one) -->
+  <!-- Your CSS -->
   <link rel="stylesheet" href="taskpane.css">
 </head>
 
@@ -73,23 +73,32 @@
     </button>
   </div>
 
+  <!-- INCIDENT CLOSE (FIXED + IMPROVED) -->
+  <div id="closeSection" class="card">
+    <h3>🔒 Close Incident</h3>
+
+    <input id="closeIncidentId" placeholder="Enter Incident Number" />
+
+    <!-- ✅ NEW FETCH BUTTON -->
+    <button id="btnFetchIncident" class="btn secondary" style="margin-top:8px;">
+      🔍 Fetch Incident
+    </button>
+
+    <textarea id="rootCause" placeholder="Enter Root Cause"></textarea>
+
+    <textarea id="resolution" placeholder="Enter Resolution"></textarea>
+
+    <button id="btnCloseFinal" class="btn danger">
+      ✅ Close Incident
+    </button>
+  </div>
+
 </div>
-    <!-- INCIDENT CLOSE -->
-<div id="closeSection">
-  <h3>Close Incident</h3>
 
-  <input id="closeIncidentId" placeholder="Enter Incident Number" />
-
-  <textarea id="rootCause" placeholder="Enter Root Cause"></textarea>
-
-  <textarea id="resolution" placeholder="Enter Resolution"></textarea>
-
-  <button id="btnCloseFinal">Close Incident</button>
-</div>
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ✅ IMPORTANT: Your JS -->
+<!-- JS -->
 <script src="taskpane.js"></script>
 
 </body>
