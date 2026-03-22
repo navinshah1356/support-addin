@@ -1,6 +1,6 @@
 let currentIncident = null;
 
-// ✅ INIT (WORKS in both Outlook + Browser)
+// ✅ INIT
 function initApp() {
   console.log("🚀 App Initialized");
 
@@ -15,18 +15,19 @@ function initApp() {
 
   bind("btnCreate", createIncidentPreview);
   bind("btnFollowUp", followUp);
-  bind("btnClose", closeIncident);
+  bind("btnClose", showCloseSection);
   bind("btnFinalCreate", finalCreateIncident);
+  bind("btnCloseFinal", closeIncidentFinal);
+  bind("btnFetchIncident", fetchIncidentForClose);
 }
 
-// 👉 Safe Office init
+// 👉 Office init
 if (typeof Office !== "undefined") {
   Office.onReady(() => {
     console.log("✅ Office ready");
     initApp();
   });
 } else {
-  console.warn("⚠️ Running in browser mode (no Office)");
   window.onload = initApp;
 }
 
@@ -38,9 +39,7 @@ function showToast(message) {
   toast.innerText = message;
   toast.classList.add("show");
 
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 3000);
+  setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
 // 🔄 LOADER
@@ -53,68 +52,47 @@ function showLoader(show) {
 // 📅 FORMAT DATE
 function formatDate(date) {
   try {
-    return new Date(date).toISOString(); // ✅ SQL-friendly format
+    return new Date(date).toISOString();
   } catch {
     return new Date().toISOString();
   }
 }
 
-// 📩 GET EMAIL DETAILS (SAFE)
+// 📩 EMAIL DETAILS
 async function getEmailDetails() {
   try {
     if (typeof Office === "undefined") {
       return {
-        subject: "Test Subject (Browser Mode)",
+        subject: "Test Subject",
         from: "test@example.com",
         date: new Date(),
-        body: "This is test data (no Outlook context)",
+        body: "Test body",
       };
     }
 
-    const mailbox = Office.context.mailbox;
-
-    if (!mailbox || !mailbox.item) {
-      return {
-        subject: "No Email Open",
-        from: "unknown",
-        date: new Date(),
-        body: "No email selected",
-      };
-    }
-
-    const item = mailbox.item;
+    const item = Office.context.mailbox.item;
 
     return new Promise((resolve) => {
       item.body.getAsync("text", (result) => {
-        if (result.status !== Office.AsyncResultStatus.Succeeded) {
-          resolve({
-            subject: item.subject || "No Subject",
-            from: item.from?.emailAddress || "Unknown",
-            date: item.dateTimeCreated,
-            body: "Unable to read email body",
-          });
-        } else {
-          resolve({
-            subject: item.subject || "No Subject",
-            from: item.from?.emailAddress || "Unknown",
-            date: item.dateTimeCreated,
-            body: result.value || "No description",
-          });
-        }
+        resolve({
+          subject: item.subject || "No Subject",
+          from: item.from?.emailAddress || "Unknown",
+          date: item.dateTimeCreated,
+          body: result.value || "No description",
+        });
       });
     });
-  } catch (err) {
-    console.error("❌ Email fetch error:", err);
+  } catch {
     return {
-      subject: "Error fetching email",
+      subject: "Error",
       from: "unknown",
       date: new Date(),
-      body: "Something went wrong",
+      body: "Error reading email",
     };
   }
 }
 
-// 🔢 GENERATE INCIDENT NUMBER
+// 🔢 INCIDENT NUMBER
 function generateIncidentNumber() {
   return "INC" + Math.floor(100000 + Math.random() * 900000);
 }
@@ -125,7 +103,8 @@ async function buildIncident() {
   const incidentNumber = generateIncidentNumber();
 
   return {
-    incidentNumber: incidentNumber,
+    action: "create",
+    incidentNumber,
     subject: "Incident " + incidentNumber + ": " + email.subject,
     reportedTime: formatDate(email.date),
     openedBy: email.from,
@@ -133,96 +112,174 @@ async function buildIncident() {
   };
 }
 
-// 👀 PREVIEW INCIDENT
+// 👀 PREVIEW
 async function createIncidentPreview() {
-  try {
-    showLoader(true);
+  showLoader(true);
 
-    const incident = await buildIncident();
-    currentIncident = incident;
+  const incident = await buildIncident();
+  currentIncident = incident;
 
-    document.getElementById("incNumber").innerText = incident.incidentNumber || "-";
-    document.getElementById("incSubject").innerText = incident.subject || "-";
-    document.getElementById("incTime").innerText = incident.reportedTime || "-";
-    document.getElementById("incUser").innerText = incident.openedBy || "-";
-    document.getElementById("incDescription").value = incident.description || "";
+  document.getElementById("incNumber").innerText = incident.incidentNumber;
+  document.getElementById("incSubject").innerText = incident.subject;
+  document.getElementById("incTime").innerText = incident.reportedTime;
+  document.getElementById("incUser").innerText = incident.openedBy;
+  document.getElementById("incDescription").value = incident.description;
 
-    showToast("Preview ready ✅");
-
-  } catch (err) {
-    console.error("❌ Preview error:", err);
-    showToast("Error preparing preview ❌");
-  } finally {
-    showLoader(false);
-  }
+  showToast("Preview ready ✅");
+  showLoader(false);
 }
 
-// 🚀 FINAL CREATE (Logic App)
+// 🚀 CREATE INCIDENT
 async function finalCreateIncident() {
+  if (!currentIncident) {
+    showToast("Click Create first ⚠️");
+    return;
+  }
+
+  showLoader(true);
+
+  currentIncident.description =
+    document.getElementById("incDescription").value;
+
+  console.log("📤 Sending CREATE:", currentIncident);
+
   try {
-    if (!currentIncident) {
-      showToast("Click 'Create Incident' first ⚠️");
-      return;
-    }
-
-    showLoader(true);
-
-    currentIncident.description =
-      document.getElementById("incDescription").value;
-
-    const response = await fetch(
-      "https://prod-12.eastasia.logic.azure.com:443/workflows/03e1e813fba5481a945dd1ec560aa754/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=hQl8F9EEKZEuLDNJJyxAsUIf5UbGu1AKOKNKVK3aANU",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(currentIncident),
-      }
-    );
+    const response = await fetch("https://prod-12.eastasia.logic.azure.com:443/workflows/03e1e813fba5481a945dd1ec560aa754/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=hQl8F9EEKZEuLDNJJyxAsUIf5UbGu1AKOKNKVK3aANU", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(currentIncident),
+    });
 
     if (response.ok) {
-      showToast("Incident created successfully 🎉");
+      showToast("Incident created 🎉");
     } else {
-      showToast("Failed to create incident ❌");
+      showToast("Create failed ❌");
     }
-
-    // Reset UI
-    currentIncident = null;
-    document.getElementById("incNumber").innerText = "-";
-    document.getElementById("incSubject").innerText = "-";
-    document.getElementById("incTime").innerText = "-";
-    document.getElementById("incUser").innerText = "-";
-    document.getElementById("incDescription").value = "";
-
   } catch (err) {
-    console.error("❌ Create error:", err);
+    console.error(err);
     showToast("Error creating incident ❌");
-  } finally {
-    showLoader(false);
   }
+
+  showLoader(false);
 }
 
 // 🤖 FOLLOW-UP
-async function followUp() {
+function followUp() {
   showLoader(true);
-
   setTimeout(() => {
     document.getElementById("summaryBox").value =
-      "AI-generated follow-up summary will appear here...";
+      "AI follow-up summary...";
     showToast("Follow-up ready ✉️");
     showLoader(false);
-  }, 1200);
+  }, 1000);
 }
 
-// ✅ CLOSE INCIDENT
-async function closeIncident() {
+// 👁️ SHOW CLOSE UI
+function showCloseSection() {
+  document.getElementById("closeSection").scrollIntoView();
+}
+
+// 🔍 FETCH INCIDENT BEFORE CLOSE
+async function fetchIncidentForClose() {
+  const incId = document.getElementById("closeIncidentId").value;
+
+  if (!incId) {
+    showToast("Enter Incident Number ⚠️");
+    return;
+  }
+
   showLoader(true);
 
-  setTimeout(() => {
-    document.getElementById("summaryBox").value =
-      "AI-generated closure summary will appear here...";
-    showToast("Closure summary ready ✅");
-    showLoader(false);
-  }, 1200);
+  const payload = {
+    action: "fetch",
+    incidentNumber: incId
+  };
+
+  console.log("📤 Fetch request:", payload);
+
+  try {
+    const res = await fetch("https://prod-12.eastasia.logic.azure.com:443/workflows/03e1e813fba5481a945dd1ec560aa754/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=hQl8F9EEKZEuLDNJJyxAsUIf5UbGu1AKOKNKVK3aANU", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+
+    console.log("📥 Fetch result:", result);
+
+    if (!result.found) {
+      showToast("❌ Incident not found");
+      return;
+    }
+
+    const data = result.data;
+
+    document.getElementById("incNumber").innerText = data.IncidentNumber;
+    document.getElementById("incSubject").innerText = data.Subject;
+    document.getElementById("incTime").innerText = data.ReportedTime;
+    document.getElementById("incUser").innerText = data.OpenedBy;
+    document.getElementById("incDescription").value = data.Description;
+
+    showToast("Incident loaded ✅");
+
+  } catch (err) {
+    console.error(err);
+    showToast("Error fetching incident ❌");
+  }
+
+  showLoader(false);
+}
+
+// 🔥 FINAL CLOSE INCIDENT
+async function closeIncidentFinal() {
+  const incId = document.getElementById("closeIncidentId").value;
+  const rootCause = document.getElementById("rootCause").value;
+  const resolution = document.getElementById("resolution").value;
+
+  if (!incId) {
+    showToast("Enter Incident Number ⚠️");
+    return;
+  }
+
+  if (!rootCause || !resolution) {
+    showToast("Fill Root Cause & Resolution ⚠️");
+    return;
+  }
+
+  showLoader(true);
+
+  const payload = {
+    action: "close",
+    incidentNumber: incId,
+    rootCause,
+    resolution,
+    closedBy: "navinshah1356@outlook.com"
+  };
+
+  console.log("📤 Closing:", payload);
+
+  try {
+    const response = await fetch("https://prod-12.eastasia.logic.azure.com:443/workflows/03e1e813fba5481a945dd1ec560aa754/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=hQl8F9EEKZEuLDNJJyxAsUIf5UbGu1AKOKNKVK3aANU", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      showToast("Incident closed ✅");
+    } else {
+      showToast("Close failed ❌");
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToast("Error closing incident ❌");
+  }
+
+  showLoader(false);
 }
