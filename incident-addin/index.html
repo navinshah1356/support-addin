@@ -6,11 +6,12 @@
 
   <title>Support Service</title>
 
-  <!-- Office.js (REQUIRED) -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-
-  <!-- Your CSS -->
   <link rel="stylesheet" href="taskpane.css">
+
+  <style>
+    .hidden { display: none; }
+  </style>
 </head>
 
 <body>
@@ -33,14 +34,14 @@
   </div>
 
   <!-- AI SUMMARY -->
-  <div class="card">
+  <div id="aiSection" class="card">
     <h3>🤖 AI Summary</h3>
     <div id="loader" class="loader hidden"></div>
     <textarea id="summaryBox" placeholder="AI-generated summary will appear here..."></textarea>
   </div>
 
   <!-- INCIDENT PREVIEW -->
-  <div class="card">
+  <div id="previewSection" class="card">
     <h3>📋 Incident Preview</h3>
 
     <div class="preview-grid">
@@ -65,27 +66,25 @@
       </div>
     </div>
 
-    <label class="desc-label">Description</label>
-    <textarea id="incDescription" placeholder="Incident description..."></textarea>
+    <label>Description</label>
+    <textarea id="incDescription"></textarea>
 
-    <button id="btnFinalCreate" class="btn primary" style="margin-top:12px;">
+    <button id="btnFinalCreate" class="btn primary">
       🚀 Confirm & Create Incident
     </button>
   </div>
 
-  <!-- INCIDENT CLOSE (FIXED + IMPROVED) -->
-  <div id="closeSection" class="card">
+  <!-- CLOSE INCIDENT -->
+  <div id="closeSection" class="card hidden">
     <h3>🔒 Close Incident</h3>
 
     <input id="closeIncidentId" placeholder="Enter Incident Number" />
 
-    <!-- ✅ NEW FETCH BUTTON -->
-    <button id="btnFetchIncident" class="btn secondary" style="margin-top:8px;">
+    <button id="btnFetchIncident" class="btn secondary">
       🔍 Fetch Incident
     </button>
 
     <textarea id="rootCause" placeholder="Enter Root Cause"></textarea>
-
     <textarea id="resolution" placeholder="Enter Resolution"></textarea>
 
     <button id="btnCloseFinal" class="btn danger">
@@ -95,10 +94,8 @@
 
 </div>
 
-<!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- JS -->
 <script src="taskpane.js"></script>
 
 </body>
